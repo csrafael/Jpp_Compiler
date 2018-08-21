@@ -1,10 +1,12 @@
 %{
  #include <stdio.h>
  #include <string.h>
+ #include <stdbool.h>
  
- #include "jpp_compiler.y"
- 
- #define SIMBOLO_PALAVRA_RESERVADA 1
+ #include "jpp_compiler.tab.h"
+
+
+ /*#define SIMBOLO_PALAVRA_RESERVADA 1
  #define SIMBOLO_ID 2
  #define SIMBOLO_PV 3
  #define SIMBOLO_V 4
@@ -35,16 +37,16 @@
  #define OPERADOR_OR 29
  #define OPERADOR_NOT 30 
  #define OPERADOR_INC 31
- #define OPERADOR_DEC 32
+ #define OPERADOR_DEC 32*/
 
- int num_linha = 1;
- int palavra_reservada(char pal[]);
+ int num_linha=1;
+
 %}
 
 digito [0-9]
 letra [a-zA-Z]
 id (j|J)(_|{letra}|{digito})*
-inteiro [\+|\-]?{digito}+
+inteiro {digito}+
 float {inteiro}\.{digito}+
 char '{letra}'
 string \".*\"
@@ -53,49 +55,75 @@ string \".*\"
 \n {num_linha += 1;}
 [ \t] { /* espacos em branco */ }
 \/\/.* { /* comentarios */ }
-{id} {
-   if (palavra_reservada(yytext))
-    return(SIMBOLO_PALAVRA_RESERVADA);
-   else
-    return(SIMBOLO_ID);
-  }
-{float} {return(NUM_FLOAT);}
-{inteiro} {return(NUM_INT);}
-{char} {return(CHAR);}
-{string} {return(STRING);}
-";" { return(SIMBOLO_PV); }
-"," { return(SIMBOLO_V); }
-"{" { return(SIMBOLO_ABRE_CHAVES); }
-"}" { return(SIMBOLO_FECHA_CHAVES); }
-"(" { return(SIMBOLO_ABRE_PARENTESES); }
-")" { return(SIMBOLO_FECHA_PARENTESES); }
-"[" { return(SIMBOLO_ABRE_COLCHETES); }
-"]" { return(SIMBOLO_FECHA_COLCHETES); }
-"==" { return(OPERADOR_IGUAL); }
-"=" { return(SIMBOLO_ATRIBUICAO); }
-"#" { return(SIMBOLO_PRE_PROCESSOR); }
-"++" { return(OPERADOR_INC); }
-"--" { return(OPERADOR_DEC); }
-"+" { return(OPERADOR_SUM); }
-"-" { return(OPERADOR_SUB); }
-"*" { return(OPERADOR_MUL); }
-"/" { return(OPERADOR_DIV); }
-"%" { return(OPERADOR_MOD); }
-"!=" { return(OPERADOR_DIFERENTE); }
-">=" { return(OPERADOR_MAIOR_IGUAL);}
-"<=" { return(OPERADOR_MENOR_IGUAL);}
-">" {return(OPERADOR_MAIOR);}
-"<" {return(OPERADOR_MENOR);}
-"&&" {return(OPERADOR_AND);}
-"||" {return(OPERADOR_OR);}
-"!" {return(OPERADOR_NOT);}
+
+"jdouble" { return JDOUBLE; }
+"jfloat" { return JFLOAT; }
+"jif" { return JIF ; }
+"jswitch" { return JSWITCH ; }
+"jchar" { return JCHAR ; }
+"jelse" { return JELSE ; }
+"jfor" { return JFOR ; }
+"jsizeof" { return JSIZEOF ; }
+"jbreak" { return JBREAK ; }
+"jint" { return JINT ; }
+"jvoid" { return JVOID ; }
+"jcase" { return JCASE ; }
+"jgoto" { return JGOTO ; }
+"jlong" { return JLONG ; }
+"jreturn" { return JRETURN ; }
+"jdo" { return JDO ; }
+"jshort" { return JSHORT ; }
+"jwhile" { return JWHILE ; }
+"jbool" { return JBOOL ;}
+"jmain" { return JMAIN ; }
+"jtrue" {
+    yylval.b = true;
+    return NUM_BOOL;
+}
+"jfalse" {
+    yylval.b = false;
+    return NUM_BOOL;
+}
+
+
+{id} { return SIMBOLO_ID ;  }
+{float} { yylval.f=atof(yytext); return NUM_FLOAT ;}
+
+{char} {return CHAR ;}
+{string} {return STRING ;}
+";" { return SIMBOLO_PV ; }
+"," { return SIMBOLO_V ; }
+"{" { return SIMBOLO_ABRE_CHAVES ; }
+"}" { return SIMBOLO_FECHA_CHAVES ; }
+"(" { return SIMBOLO_ABRE_PARENTESES ; }
+")" { return SIMBOLO_FECHA_PARENTESES ; }
+"[" { return SIMBOLO_ABRE_COLCHETES ; }
+"]" { return SIMBOLO_FECHA_COLCHETES ; }
+"==" { return OPERADOR_IGUAL ; }
+"=" { return SIMBOLO_ATRIBUICAO ; }
+"#" { return SIMBOLO_PRE_PROCESSADOR ; }
+"++" { return OPERADOR_INC ; }
+"--" { return OPERADOR_DEC ; }
+"+" { return OPERADOR_SUM ; }
+"-" { return OPERADOR_SUB ; }
+"*" { return OPERADOR_MUL ; }
+"/" { return OPERADOR_DIV ; }
+"%" { return OPERADOR_MOD ; }
+"!=" { return OPERADOR_DIFERENTE ; }
+">=" { return OPERADOR_MAIOR_IGUAL ;}
+"<=" { return OPERADOR_MENOR_IGUAL ;}
+">" {return OPERADOR_MAIOR ;}
+"<" {return OPERADOR_MENOR ;}
+"&&" {return OPERADOR_AND ;}
+"||" {return OPERADOR_OR ;}
+"!" {return OPERADOR_NOT ;}
 '{letra} {printf("Linha %d: %s - %s\n", num_linha, yytext, "CHAR INVALIDO: ASPAS NÃO FORAM FECHADAS");}
 \"[^\"\n]* {printf("Linha %d: %s - %s\n", num_linha, yytext, "STRING INVALIDA: ASPAS NÃO FORAM FECHADAS");}
 . {printf("Linha %d: %s - %s\n", num_linha, yytext, "Símbolo não reconhecido.");}
 
 %%
 
-int palavra_reservada(char pal[])
+/*int palavra_reservada(char pal[])
 {
  if ((!strcmp(pal, "jdouble")) ||
      (!strcmp(pal, "jfloat")) ||
@@ -117,14 +145,15 @@ int palavra_reservada(char pal[])
      (!strcmp(pal, "jwhile")) ||
      (!strcmp(pal, "jtrue")) ||
      (!strcmp(pal, "jbool")) ||
-     (!strcmp(pal, "jfalse")))
+     (!strcmp(pal, "jfalse")) ||
+     (!strcmp(pal, "jmain"))) 
 
   return(1);    
  else
   return(0);
-}
+} */
 
-const char *getString(int codigo)
+/*const char *getString(int codigo)
 {
  switch(codigo) {
    case SIMBOLO_PALAVRA_RESERVADA:
@@ -194,9 +223,9 @@ const char *getString(int codigo)
    default:
      return "INVALIDO";
   }
-}
+}*/
 
-int main()
+/*int main()
 {
  int codigo;
 
@@ -206,6 +235,6 @@ int main()
  }
 
  return 0;
-}
+}*/
 
 
