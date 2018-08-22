@@ -30,6 +30,8 @@ int yylex();
 %token JIF JSWITCH JELSE JFOR JWHILE JDO JBREAK JCASE
 %token JSIZEOF JGOTO JRETURN 
 %token JMAIN
+%token COMENTARIOS
+%token JEND
 
 %token /*<f>*/ SIMBOLO_ID 
 %token /*<i>*/ NUM_INT 
@@ -60,25 +62,45 @@ int yylex();
 /* Grammar rules          */
 /**************************/
 entrada : 
-	| entrada final; 
+	| entrada acoes; 
 	;
-final   : SIMBOLO_PV
+acoes   : SIMBOLO_PV
         /*| exprmat SIMBOLO_PV {printf("%d\n",$1);}*/
-	| exprmat  SIMBOLO_PV/*{printf("%.2f\n",$1);}*/
-        | exprlog  SIMBOLO_PV/*{printf("%d\n",$1);}*/
-        | atrb     SIMBOLO_PV 
-        | estrcond SIMBOLO_PV
+        | atrb SIMBOLO_PV    acoes 
+        | estrcond acoes
+        | for      acoes
+        | while    acoes
+        | atrbvec SIMBOLO_PV acoes
+        | criaFuncao acoes
+        | consulFunc acoes
+        | comentarios acoes
+        | retorno  SIMBOLO_PV   acoes
+        | JEND {printf("COMPILACAO BEM SUCEDIDA");}
         ;
 
 varnum  : NUM_FLOAT
         | NUM_INT
+        | OPERADOR_SUB NUM_FLOAT
+        | OPERADOR_SUB NUM_INT
+        | OPERADOR_SUB SIMBOLO_ID
         | SIMBOLO_ID
+        | consvec
+        | NUM_BOOL
         ;
 
 
 
-atrb    : tipo SIMBOLO_ID SIMBOLO_ATRIBUICAO exprmat {$2 = $4;}
+atrb    : tipo SIMBOLO_ID SIMBOLO_ATRIBUICAO exprmat
+	| SIMBOLO_ID SIMBOLO_ATRIBUICAO exprmat
         ;
+
+atrbvec : tipo SIMBOLO_ID SIMBOLO_ABRE_COLCHETES varnum SIMBOLO_FECHA_COLCHETES SIMBOLO_ATRIBUICAO SIMBOLO_ABRE_CHAVES elemen SIMBOLO_FECHA_CHAVES
+
+elemen  : varnum 
+        | varnum SIMBOLO_V elemen
+        ;
+
+consvec : SIMBOLO_ID SIMBOLO_ABRE_COLCHETES varnum SIMBOLO_FECHA_COLCHETES 
 
 tipo    : JDOUBLE
         | JFLOAT 
@@ -89,45 +111,79 @@ tipo    : JDOUBLE
         | JSHORT
         ;
 
-/*opuni   : SIMBOLO_ID OPERADOR_INC
+opuni   : SIMBOLO_ID OPERADOR_INC
         | SIMBOLO_ID OPERADOR_DEC
         ;
-*/
+
+comentarios : COMENTARIOS;
 
 exprmat :  SIMBOLO_ABRE_PARENTESES exprmat SIMBOLO_FECHA_PARENTESES { $$ = $2;} 
-        |  exprmat OPERADOR_SUM exprmat      { $$ = $1 + $3;}
-        |  exprmat OPERADOR_SUB exprmat      { $$ = $1 - $3;}	
-        |  exprmat OPERADOR_MUL exprmat      { $$ = $1 * $3;}
-        |  exprmat OPERADOR_DIV exprmat      {
-		 if($3==0){ yyerror("Divisao por zero"); yyerrok;}
-		 else{$$ = $1 / $3;}}
+        |  exprmat OPERADOR_SUM exprmat            
+        |  exprmat OPERADOR_SUB exprmat      	
+        |  exprmat OPERADOR_MUL exprmat      
+        |  exprmat OPERADOR_DIV exprmat      
         |  exprmat OPERADOR_MOD exprmat       
-        |  varnum                            { $$ = $1;}
+        |  varnum                           
+        |  exprmat OPERADOR_AND exprmat         
+        |  exprmat OPERADOR_OR  exprmat           
+        |  OPERADOR_NOT exprmat                 
+        |  exprmat OPERADOR_MAIOR exprmat       
+        |  exprmat OPERADOR_MENOR exprmat       
+        |  exprmat OPERADOR_MAIOR_IGUAL exprmat 
+        |  exprmat OPERADOR_MENOR_IGUAL exprmat 
+        |  exprmat OPERADOR_IGUAL exprmat       
+        |  exprmat OPERADOR_DIFERENTE exprmat   
         ;
 
-exprlog : SIMBOLO_ABRE_PARENTESES exprlog SIMBOLO_FECHA_PARENTESES { $$ = $2;}
-        | exprlog OPERADOR_AND exprlog         { $$ = $1 && $3  ;}
-        | exprlog OPERADOR_OR  exprlog         { $$ = $1 || $3  ;}
-        | OPERADOR_NOT exprlog                 {  $$ = !$2      ;}
-        | exprmat OPERADOR_MAIOR exprmat       { $$ = $1 > $3   ;}
-        | exprmat OPERADOR_MENOR exprmat       { $$ = $1 < $3   ;}
-        | exprmat OPERADOR_MAIOR_IGUAL exprmat { $$ = $1 >= $3  ;}
-        | exprmat OPERADOR_MENOR_IGUAL exprmat { $$ = $1 <= $3  ;}
-        | exprmat OPERADOR_IGUAL exprmat       { $$ = $1 == $3  ;}
-        | exprmat OPERADOR_DIFERENTE exprmat   { $$ = $1 != $3  ;}
-        | NUM_BOOL                             { $$ = $1       ;}
-        | SIMBOLO_ID
-        ;
-
-estrcond: JIF SIMBOLO_ABRE_PARENTESES exprlog SIMBOLO_FECHA_PARENTESES SIMBOLO_ABRE_CHAVES SIMBOLO_FECHA_CHAVES else;
+estrcond: JIF SIMBOLO_ABRE_PARENTESES exprmat SIMBOLO_FECHA_PARENTESES SIMBOLO_ABRE_CHAVES acoes SIMBOLO_FECHA_CHAVES else;
 
 else    : 
-        | JELSE SIMBOLO_ABRE_CHAVES SIMBOLO_FECHA_CHAVES
+        | JELSE SIMBOLO_ABRE_CHAVES acoes SIMBOLO_FECHA_CHAVES
         | JELSE estrcond
         ;
 
-/*for     : JFOR SIMBOLO_ABRE_PARENTESES inic SIMBOLO_PV cond SIMBOLO_PV incr SIMBOLO_FECHA_PARENTESES SIMBOLO_ABRE_CHAVES SIMBOLO_FECHA_CHAVES
-*/
+for     : JFOR SIMBOLO_ABRE_PARENTESES inic SIMBOLO_PV cond SIMBOLO_PV incr SIMBOLO_FECHA_PARENTESES SIMBOLO_ABRE_CHAVES acoes SIMBOLO_FECHA_CHAVES
+	;
+
+inic : atrb
+     |
+     ;
+
+cond : exprmat
+     |
+     ;
+
+incr : atrb
+     | opuni
+     |
+     ;
+
+while    : JWHILE SIMBOLO_ABRE_PARENTESES exprmat SIMBOLO_FECHA_PARENTESES SIMBOLO_ABRE_CHAVES acoes SIMBOLO_FECHA_CHAVES
+         ;
+
+criaFuncao : tipo SIMBOLO_ID SIMBOLO_ABRE_PARENTESES param SIMBOLO_FECHA_PARENTESES SIMBOLO_ABRE_CHAVES acoes SIMBOLO_FECHA_CHAVES
+
+param    : tipo SIMBOLO_ID SIMBOLO_ABRE_COLCHETES SIMBOLO_FECHA_COLCHETES params
+         | tipo SIMBOLO_ID params
+	 ;
+
+params   : SIMBOLO_V param
+         | 
+         ;
+
+consulFunc : SIMBOLO_ID SIMBOLO_ABRE_PARENTESES var_par SIMBOLO_FECHA_PARENTESES
+
+var_par  : varnum var_pars
+         ;
+
+var_pars : SIMBOLO_V var_par
+         |
+         ;
+
+retorno : JRETURN varnum
+	: JRETURN consulFunc
+        ;
+
 /**************************/
 /* Additional C code      */
 /**************************/

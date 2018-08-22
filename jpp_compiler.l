@@ -53,8 +53,8 @@ string \".*\"
 
 %%
 \n {num_linha += 1;}
-[ \t] { /* espacos em branco */ }
-\/\/.* { /* comentarios */ }
+[ \t]+ { /* espacos em branco */ }
+"//".* { return COMENTARIOS; }
 
 "jdouble" { return JDOUBLE; }
 "jfloat" { return JFLOAT; }
@@ -77,18 +77,19 @@ string \".*\"
 "jbool" { return JBOOL ;}
 "jmain" { return JMAIN ; }
 "jtrue" {
-    yylval.b = true;
+   /* yylval.b = true;*/
     return NUM_BOOL;
 }
 "jfalse" {
-    yylval.b = false;
+    /*yylval.b = false;*/
     return NUM_BOOL;
 }
+"jend"  {return JEND;}
 
 
 {id} { return SIMBOLO_ID ;  }
-{float} { yylval.f=atof(yytext); return NUM_FLOAT ;}
-
+{float} { /*yylval.f=atof(yytext);*/ return NUM_FLOAT ;}
+{inteiro} { /*yylval.i = yytext[0]-'0';*/ return NUM_INT;}
 {char} {return CHAR ;}
 {string} {return STRING ;}
 ";" { return SIMBOLO_PV ; }
